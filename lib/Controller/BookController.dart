@@ -158,4 +158,79 @@ class BookController extends GetxController {
         .add(book.toJson());
   }
 
+  void deleteBook(String bookId) async {
+    try {
+      // Show loading indicator
+      isPostUploading.value = true;
+
+      // First, get the book document to access its URLs for file deletion
+      var bookQuery = await db.collection("Books").where("id", isEqualTo: bookId).get();
+
+      if (bookQuery.docs.isEmpty) {
+        errorMessage("Book not found");
+        isPostUploading.value = false;
+        return;
+      }
+
+      // Get book data and its document ID
+      var bookDoc = bookQuery.docs.first;
+      var bookData = bookDoc.data();
+
+      // Extract URLs safely using optional chaining/null checks
+      String? coverUrl = bookData["coverUrl"] as String?;
+      String? bookPdfUrl = bookData["bookurl"] as String?;
+
+      // Delete the book document from main Books collection
+      await db.collection("Books").doc(bookDoc.id).delete();
+
+      // Delete from user's books collection
+      var userBookQuery = await db
+          .collection("userBook")
+          .doc(fAuth.currentUser!.uid)
+          .collection("Books")
+          .where("id", isEqualTo: bookId)
+          .get();
+
+      if (userBookQuery.docs.isNotEmpty) {
+        await db
+            .collection("userBook")
+            .doc(fAuth.currentUser!.uid)
+            .collection("Books")
+            .doc(userBookQuery.docs.first.id)
+            .delete();
+      }
+
+      // Delete cover image if exists
+      if (coverUrl != null && coverUrl.isNotEmpty) {
+        try {
+          await storage.refFromURL(coverUrl).delete();
+        } catch (e) {
+          print("Error deleting cover image: $e");
+          // Continue with deletion even if image deletion fails
+        }
+      }
+
+      // Delete PDF if exists
+      if (bookPdfUrl != null && bookPdfUrl.isNotEmpty) {
+        try {
+          await storage.refFromURL(bookPdfUrl).delete();
+        } catch (e) {
+          print("Error deleting PDF: $e");
+          // Continue with deletion even if PDF deletion fails
+        }
+      }
+
+      // Refresh book lists
+      getAllBooks();
+      getUserBook();
+
+      // Show success message
+      successMessage("Book deleted successfully");
+    } catch (e) {
+      errorMessage("Failed to delete book: $e");
+      print("Delete book error: $e");
+    } finally {
+      isPostUploading.value = false;
+    }
+  }
 }

@@ -124,18 +124,57 @@ class ProfilePage extends StatelessWidget {
                   ),
                   SizedBox(height: 20),
                   Obx(
-                    () => Column(
-                      children: bookController.currentUserBooks
-                          .map((e) => BookTile(
-                                title: e.title!,
-                                coverUrl: e.coverUrl!,
-                                author: e.author!,
-                                price: e.price!,
-                                rating: e.rating!,
-                                totalRating: 12,
-                                ontap: () {},
-                              ))
-                          .toList(),
+                        () => Column(
+                      children: bookController.currentUserBooks.map((book) =>
+                          Container(
+                            margin: EdgeInsets.only(bottom: 10),
+                            child: Stack(
+                              children: [
+                                BookTile(
+                                  title: book.title!,
+                                  coverUrl: book.coverUrl!,
+                                  author: book.author!,
+                                  price: book.price!,
+                                  rating: book.rating!,
+                                  totalRating: 12,
+                                  ontap: () {},
+                                ),
+                                Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.delete,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {
+                                        // Show confirmation dialog
+                                        Get.defaultDialog(
+                                            title: "Delete Book",
+                                            middleText: "Are you sure you want to delete '${book.title}'?",
+                                            textConfirm: "Delete",
+                                            textCancel: "Cancel",
+                                            confirmTextColor: Colors.white,
+                                            buttonColor: Colors.red,
+                                            onConfirm: () {
+                                              Get.back(); // Close dialog
+                                              bookController.deleteBook(book.id!);
+                                            }
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                      ).toList(),
                     ),
                   )
                 ],
